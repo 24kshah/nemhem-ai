@@ -1,14 +1,2 @@
 streamlit
 requests
-langchain==0.1.14
-langchain-community==0.0.35
-langchain-google-genai==0.0.10
-langchain-huggingface==0.1.0
-sentence-transformers==2.5.1
-faiss-cpu==1.7.4
-PyPDF2
-python-docx
-docx2txt
-pandas
-transformers==4.40.0
-tf-keras==2.14.0
