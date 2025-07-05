@@ -7,7 +7,9 @@ API_KEYS = [
     "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",
     "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",
     "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",
-    "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"
+    "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",
+    "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",
+    "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"
 ]
 
 MODEL_OPTIONS = [
@@ -65,20 +67,28 @@ for msg in st.session_state.messages:
 
 # ------------------ Helper: Call LLM ------------------
 def call_llm(prompt, model):
-    for key in random.sample(API_KEYS, len(API_KEYS)):
-        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-        payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+    for key in API_KEYS:
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}]
+        }
+
         try:
             res = requests.post(BASE_URL, headers=headers, json=payload)
             if res.status_code == 200:
                 return res.json()["choices"][0]["message"]["content"]
-            elif res.status_code in (429, 403):
-                continue
+            elif res.status_code in (401, 403, 429):
+                continue  # Try next key
             else:
                 return f"❌ Error {res.status_code}: {res.text}"
         except Exception as e:
-            return f"❌ Exception: {e}"
-    return "❌ All API keys failed."
+            continue  # Try next key
+
+    return "❌ All API keys failed or were rate-limited."
 
 # ------------------ CHAT INPUT ------------------
 prompt = st.chat_input("Ask me anything...")
