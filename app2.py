@@ -2,16 +2,15 @@ import streamlit as st
 import requests
 import google.generativeai as genai
 from together import Together
-from dotenv import load_dotenv
 import os
 
-# ------------------ LOAD ENV ------------------
-load_dotenv()
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-OPENROUTER_KEYS = os.getenv("OPENROUTER_API_KEYS", "").split(",")
+# ------------------ LOAD SECRETS ------------------
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY") or st.secrets.get("TOGETHER_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
+OPENROUTER_KEYS = (
+    os.getenv("OPENROUTER_API_KEYS") or st.secrets.get("OPENROUTER_API_KEYS", "")
+).split(",")
 
 genai.configure(api_key=GEMINI_API_KEY)
 together_client = Together(api_key=TOGETHER_API_KEY)
@@ -59,11 +58,11 @@ def extract_model_name(full_label):
 
 # ------------------ LLM CALL FUNCTION ------------------
 def call_llm(prompt, full_label):
-    model = extract_model_name(full_label)
+    model = extract_model_name(full_label).strip()
     model_lower = model.lower()
 
     # Gemini
-    if "gemini" in model_lower:
+    if model_lower.startswith("gemini"):
         try:
             gemini_model = genai.GenerativeModel("models/gemini-1.5-flash")
             response = gemini_model.generate_content(prompt)
@@ -72,7 +71,7 @@ def call_llm(prompt, full_label):
             return f"❌ Gemini Error: {str(e)}"
 
     # Together
-    elif any(k in model_lower for k in ["llama-vision", "deepseek-r1-distill"]):
+    elif "llama-vision" in model_lower or "deepseek" in model_lower:
         try:
             response = together_client.chat.completions.create(
                 model=model,
@@ -83,7 +82,7 @@ def call_llm(prompt, full_label):
             return f"❌ Together Error: {str(e)}"
 
     # Groq
-    elif any(k in model_lower for k in ["llama3", "mixtral", "gemma"]):
+    elif any(x in model_lower for x in ["llama3", "mixtral", "gemma"]):
         try:
             url = "https://api.groq.com/openai/v1/chat/completions"
             headers = {
@@ -102,7 +101,7 @@ def call_llm(prompt, full_label):
         except Exception as e:
             return f"❌ Groq Exception: {str(e)}"
 
-    # OpenRouter fallback
+    # OpenRouter (default)
     else:
         for key in OPENROUTER_KEYS:
             headers = {
