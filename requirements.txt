@@ -1,2 +1,5 @@
 streamlit
 requests
+google-generativeai
+together
+python-dotenv
