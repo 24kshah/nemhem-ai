@@ -2,17 +2,13 @@ import streamlit as st
 import requests
 import google.generativeai as genai
 from together import Together
-from dotenv import load_dotenv
-import os
 
-# ------------------ LOAD ENV ------------------
-load_dotenv()
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-OPENROUTER_KEYS = os.getenv("OPENROUTER_API_KEYS", "").split(",")
+# ------------------ LOAD SECRETS ------------------
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+TOGETHER_API_KEY = st.secrets["TOGETHER_API_KEY"]
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
+OPENROUTER_KEYS = st.secrets["OPENROUTER_API_KEYS"].split(",")
 
 genai.configure(api_key=GEMINI_API_KEY)
 together_client = Together(api_key=TOGETHER_API_KEY)
@@ -105,8 +101,8 @@ def call_llm(prompt, full_label):
         except Exception as e:
             return f"❌ Groq Exception: {str(e)}"
 
-    # Mistral AI
-    elif "mistral-small" in model_lower or "mistral-medium" in model_lower or "mistral-large" in model_lower:
+    # Mistral
+    elif "mistral-small" in model_lower:
         try:
             url = "https://api.mistral.ai/v1/chat/completions"
             headers = {
@@ -121,11 +117,11 @@ def call_llm(prompt, full_label):
             if res.status_code == 200:
                 return res.json()["choices"][0]["message"]["content"]
             else:
-                return f"❌ MistralAI Error {res.status_code}: {res.text}"
+                return f"❌ Mistral Error {res.status_code}: {res.text}"
         except Exception as e:
-            return f"❌ MistralAI Exception: {str(e)}"
+            return f"❌ Mistral Exception: {str(e)}"
 
-    # OpenRouter fallback
+    # OpenRouter
     else:
         for key in OPENROUTER_KEYS:
             headers = {
