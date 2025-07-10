@@ -128,9 +128,11 @@ def search_reddit_with_tavily(query):
 
 import re
 
+import re
+
 def extract_youtube_id(url):
-    # Extract YouTube video ID using regex
-    match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
+    # Extracts video ID from a standard YouTube watch URL
+    match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})", url)
     return match.group(1) if match else None
 
 def search_youtube_with_tavily(query):
@@ -139,34 +141,43 @@ def search_youtube_with_tavily(query):
         "Authorization": f"Bearer {TAVILY_API_KEY}"
     }
     payload = {
-        "query": f"{query} site:youtube.com",
+        "query": f"{query} site:youtube.com/watch",
         "search_depth": "advanced",
         "include_answer": False,
-        "max_results": 3
+        "max_results": 5
     }
+
     try:
         res = requests.post(TAVILY_URL, headers=headers, json=payload)
         if res.status_code == 200:
             results = res.json().get("results", [])
-            formatted_blocks = ""
+            video_blocks = ""
             for r in results:
                 url = r.get("url", "")
-                if not url:
+                title = r.get("title", "Untitled")
+                if "youtube.com/watch" not in url:
                     continue
                 video_id = extract_youtube_id(url)
                 if video_id:
                     thumbnail_url = f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
                     block = f"""
-<img src="{thumbnail_url}" width="320"><br>
-🔗 [Watch Video]({url})  
+### {title}
+<a href="{url}" target="_blank">
+  <img src="{thumbnail_url}" width="320">
+</a>
+<br>[🔗 Watch Video]({url})  
 <br><br>
 """
-                    formatted_blocks += block
-            return f"### 🎥 YouTube Links with Thumbnails\n\n{formatted_blocks}"
+                    video_blocks += block
+            if video_blocks:
+                return f"### 🎥 YouTube Videos\n\n{video_blocks}"
+            else:
+                return "⚠️ No valid YouTube videos found."
         else:
             return f"⚠️ YouTube search failed: {res.status_code} - {res.text}"
     except Exception as e:
         return f"⚠️ YouTube search error: {str(e)}"
+
 
 
 # ------------------ LLM CALL FUNCTION ------------------
